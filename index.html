@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Pray the Rosary for every nation in its own language and watch the world map turn gold.">
+<meta property="og:title" content="Global Holy Rosary">
+<meta property="og:description" content="Pray the Rosary for every nation in its own language and watch the world map turn gold.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='17' r='12' fill='none' stroke='%23c9a227' stroke-width='3' stroke-dasharray='3 3'/%3E%3Cpath d='M18.5 28h3v3h3v3h-3v6h-3v-6h-3v-3h3z' fill='%23c9a227'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<title>Global Holy Rosary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+body{margin:0}
+img{max-width:100%}
+/* Layout: an illuminated prayer-book app — lapis map as the altar piece, gold leaf for every Rosary offered, parchment pages for the nations. */
+:root{
+  --bg:#efe8d8; --surface:#fbf8f1; --surface-2:#f5efe1; --ink:#16203d; --muted:#5a6181; --line:#d9ccae;
+  --lapis:#1c2a5b; --sea:#1a2856; --land:#e6dbc0; --land-line:#b8a77f;
+  --gold:#a87a1c; --gold-bright:#d9b44a; --gold-soft:#f2e3b3; --on-gold:#1b1405;
+  --warn:#9a4b16;
+  --display:"Cormorant Garamond","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --body:"Alegreya Sans","Gill Sans","Segoe UI",system-ui,sans-serif;
+  --pray:"Cormorant Garamond","Noto Serif","Iowan Old Style",Georgia,"Noto Sans Arabic","Noto Sans Devanagari","Noto Sans Ethiopic",serif;
+  --g1:#efd98f; --g2:#e2bd52; --g3:#cf9d28; --g4:#b5801a; --g5:#8e5d07;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1430; --surface:#131c3c; --surface-2:#18234a; --ink:#f0e7d0; --muted:#a8afc9; --line:#2b3664;
+  --lapis:#0a1128; --sea:#0a1230; --land:#36416d; --land-line:#4c5788;
+  --gold:#e0bb57; --gold-bright:#f0d27a; --gold-soft:#3a3320; --on-gold:#1b1405; --warn:#f0a26a;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0c1430; --surface:#131c3c; --surface-2:#18234a; --ink:#f0e7d0; --muted:#a8afc9; --line:#2b3664;
+  --lapis:#0a1128; --sea:#0a1230; --land:#36416d; --land-line:#4c5788;
+  --gold:#e0bb57; --gold-bright:#f0d27a; --gold-soft:#3a3320; --on-gold:#1b1405; --warn:#f0a26a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:auto}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,select,input{font:inherit;color:inherit}
+a{color:var(--gold)}
+:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.1;text-wrap:balance;margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:16px;min-height:60px}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.brand svg{flex:none}
+.brand b{font-family:var(--display);font-size:1.45rem;font-weight:700;letter-spacing:.01em}
+.brand small{display:block;font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:-2px}
+.tabs{margin-left:auto;display:flex;gap:4px}
+.tab{background:none;border:0;padding:8px 14px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:500}
+.tab[aria-current="page"]{color:var(--ink);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line)}
+.tab:hover{color:var(--ink)}
+.bottombar{display:none}
+@media (max-width:720px){
+  .tabs{display:none}
+  .bottombar{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .bottombar button{background:none;border:0;padding:8px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.74rem;color:var(--muted);cursor:pointer}
+  .bottombar button[aria-current="page"]{color:var(--gold)}
+  .bottombar svg{width:22px;height:22px}
+  main{padding-bottom:84px}
+}
+
+.view{padding-block:22px 48px}
+.eyebrow{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.rule{height:1px;background:linear-gradient(90deg,transparent,var(--gold) 20%,var(--gold) 80%,transparent);opacity:.55;border:0;margin:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:11px 20px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:500;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--gold)}
+.btn.gold{background:linear-gradient(180deg,var(--gold-bright),var(--gold));border-color:transparent;color:var(--on-gold);font-weight:700;box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 6px 18px -8px rgba(168,122,28,.7)}
+.btn.gold:hover{filter:brightness(1.05)}
+.btn.ghost{background:transparent}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* hero + stats */
+.hero{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:end;margin-bottom:18px}
+.hero h1{font-size:clamp(2.1rem,5vw,3.4rem);font-weight:600}
+.hero h1 em{font-style:italic;color:var(--gold)}
+.hero p{color:var(--muted);max-width:52ch;margin:.5rem 0 0}
+.stats{display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:flex-end}
+.stat{min-width:0}
+.stat b{display:block;font-family:var(--display);font-size:2rem;line-height:1;font-variant-numeric:tabular-nums;font-weight:700}
+.stat span{font-size:.78rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.progress{height:6px;border-radius:999px;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden;margin-top:10px}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--g2),var(--g4));width:0;transition:width .8s ease}
+@media (max-width:720px){.hero{grid-template-columns:1fr}.stats{justify-content:flex-start}}
+
+/* map */
+.mapcard{position:relative;border-radius:18px;overflow:hidden;background:var(--sea);box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 45%,transparent),0 18px 40px -24px rgba(10,17,40,.8)}
+.mapcard::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 80px rgba(0,0,0,.35);border-radius:inherit}
+#map{display:block;width:100%;height:auto}
+#map .sph{fill:url(#seaGrad)}
+#map path.land{fill:var(--land);stroke:var(--land-line);stroke-width:.35;cursor:pointer;transition:fill .6s ease}
+#map path.land.nodata{cursor:default;fill:color-mix(in srgb,var(--land) 70%,var(--sea))}
+#map path.land:hover{stroke:#fff3c4;stroke-width:.9}
+#map .l1{fill:var(--g1)} #map .l2{fill:var(--g2)} #map .l3{fill:var(--g3)} #map .l4{fill:var(--g4)} #map .l5{fill:var(--g5);filter:url(#glow)}
+#map circle.dot{fill:var(--land);stroke:var(--land-line);stroke-width:.6;cursor:pointer}
+#map circle.dot.l1{fill:var(--g1)}#map circle.dot.l2{fill:var(--g2)}#map circle.dot.l3{fill:var(--g3)}#map circle.dot.l4{fill:var(--g4)}#map circle.dot.l5{fill:var(--g5)}
+#map .flash{animation:flash 2.4s ease}
+@keyframes flash{0%{fill:#fff6cf}100%{}}
+.tip{position:absolute;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:.85rem;white-space:nowrap;transform:translate(-50%,-120%);opacity:0;transition:opacity .15s}
+.tip b{font-family:var(--display);font-size:1.05rem}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:12px;font-size:.82rem;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
+.search{position:relative;flex:1 1 260px;max-width:420px}
+.search input{width:100%;padding:11px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+.results{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:auto;max-height:300px;z-index:10;box-shadow:0 16px 30px -18px rgba(0,0,0,.5)}
+.results button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:9px 14px;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer}
+.results button:hover,.results button:focus{background:var(--surface-2)}
+.results small{color:var(--muted)}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}
+@media (max-width:720px){.twocol{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.panel h3{font-size:1.4rem;margin-bottom:8px}
+.nlist{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.nlist button{display:flex;justify-content:space-between;width:100%;gap:10px;background:none;border:0;padding:7px 4px;border-bottom:1px dashed var(--line);cursor:pointer;text-align:left}
+.nlist button:hover span:first-child{color:var(--gold)}
+.nlist .n{font-variant-numeric:tabular-nums;color:var(--muted)}
+
+/* country */
+.back{background:none;border:0;color:var(--muted);cursor:pointer;padding:4px 0;margin-bottom:8px}
+.back:hover{color:var(--ink)}
+.chead{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end}
+.chead h1{font-size:clamp(2.4rem,6vw,4rem)}
+.chead .presence{color:var(--muted);margin-top:6px}
+.levelchip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:.88rem;white-space:nowrap}
+.levelchip i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.intention{margin:22px 0;padding:20px 24px;border-radius:14px;background:linear-gradient(135deg,var(--gold-soft),transparent 70%);border:1px solid color-mix(in srgb,var(--gold) 40%,var(--line));font-family:var(--display);font-size:1.45rem;font-style:italic;line-height:1.35}
+.intention small{display:block;font-family:var(--body);font-style:normal;font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;font-weight:700}
+.praybox{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:16px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.praybox label{font-size:.85rem;color:var(--muted)}
+.praybox select{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);max-width:100%}
+.badge{display:inline-block;font-size:.72rem;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.badge.est{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 50%,var(--line))}
+.badge.par{color:var(--warn)}
+.cgrid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:28px;margin-top:30px}
+@media (max-width:860px){.cgrid{grid-template-columns:1fr}}
+.prose p{max-width:65ch;margin:0 0 1em;font-size:1.06rem}
+.prose p:first-child::first-letter{font-family:var(--display);float:left;font-size:3.6rem;line-height:.82;padding:6px 8px 0 0;color:var(--gold);font-weight:700}
+.sec{margin-top:30px}
+.sec h2{font-size:1.9rem;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.sec h2::before{content:"";width:10px;height:10px;transform:rotate(45deg);background:var(--gold);flex:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.card h3{font-size:1.3rem}
+.card .meta{font-size:.82rem;color:var(--gold);letter-spacing:.04em;margin:2px 0 8px}
+.card p{margin:0;font-size:.96rem;color:var(--ink)}
+.patrons{display:flex;flex-wrap:wrap;gap:8px}
+.patrons span{padding:8px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-family:var(--display);font-size:1.15rem}
+.patrons small{font-family:var(--body);font-size:.78rem;color:var(--muted);margin-left:6px}
+.side .panel+.panel{margin-top:14px}
+.empty{color:var(--muted);font-style:italic}
+
+/* pray */
+.prayhead{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.prayhead h1{font-size:clamp(1.7rem,4vw,2.4rem)}
+.prayhead .sub{color:var(--muted);font-size:.92rem}
+.prayctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.prayctl select{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:.88rem;color:var(--muted);cursor:pointer}
+.praylay{display:grid;grid-template-columns:280px minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:820px){.praylay{grid-template-columns:1fr}.beadwrap{max-width:220px;margin:0 auto}}
+.beadwrap{position:sticky;top:84px}
+#beads{width:100%;height:auto;display:block}
+#beads .bd{fill:var(--surface-2);stroke:var(--land-line);stroke-width:1;transition:fill .4s ease}
+#beads .bd.done{fill:var(--g3);stroke:var(--g5)}
+#beads .bd.cur{fill:var(--gold-bright);stroke:var(--gold);filter:url(#beadglow)}
+#beads .chain{fill:none;stroke:var(--land-line);stroke-width:1}
+#beads .cross{fill:var(--surface-2);stroke:var(--land-line)}
+#beads .cross.done{fill:var(--g3);stroke:var(--g5)}
+#beads .cross.cur{fill:var(--gold-bright);stroke:var(--gold)}
+@media (prefers-reduced-motion:no-preference){#beads .bd.cur{animation:pulse 2s ease-in-out infinite}}
+@keyframes pulse{50%{opacity:.7}}
+.timer{text-align:center;color:var(--muted);font-size:.85rem;margin-top:8px;font-variant-numeric:tabular-nums}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,4vw,36px);min-height:340px;display:flex;flex-direction:column;cursor:pointer;position:relative}
+.pcard .step{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.pcard .step b{font-size:.74rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.pcard .step span{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.pcard .mys{margin-top:10px;font-family:var(--display);font-style:italic;font-size:1.15rem;color:var(--muted)}
+.ptext{font-family:var(--pray);font-size:clamp(1.35rem,2.6vw,1.85rem);line-height:1.5;margin:18px 0 0;white-space:pre-line}
+.ptext.small{font-size:clamp(1.15rem,2.1vw,1.45rem)}
+.ptrans{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-family:var(--display);font-size:1.12rem;line-height:1.5;color:var(--muted)}
+.mtitle{font-family:var(--display);font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.15;margin-top:18px}
+.mnum{font-family:var(--display);font-size:1rem;color:var(--muted);margin-top:6px}
+.fallback{margin-top:14px;font-size:.88rem;color:var(--warn);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fallback button{background:none;border:1px solid currentColor;border-radius:999px;padding:2px 10px;color:inherit;cursor:pointer;font-size:.8rem}
+.pnav{display:flex;gap:10px;justify-content:space-between;margin-top:16px}
+.hint{text-align:center;color:var(--muted);font-size:.8rem;margin-top:10px}
+
+/* celebration */
+.celebrate{text-align:center;max-width:640px;margin:0 auto;padding-block:16px}
+.celebrate h1{font-size:clamp(2rem,5vw,3rem);margin:10px 0}
+.celebrate p{color:var(--muted)}
+.minimap{margin:22px auto;max-width:520px;border-radius:14px;overflow:hidden;background:var(--sea);box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 45%,transparent)}
+.minimap svg{display:block;width:100%;height:auto}
+.minimap path{fill:var(--land);stroke:none}
+.minimap path.me{fill:var(--g2);filter:url(#glow2)}
+.note{padding:12px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--line);color:var(--ink);text-align:left;font-size:.95rem}
+
+/* passport */
+.pp-head{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end;margin-bottom:20px}
+.pp-head h1{font-size:clamp(2rem,5vw,3rem)}
+@media (max-width:720px){.pp-head,.chead{grid-template-columns:1fr}}
+.levelbox{display:flex;gap:18px;flex-wrap:wrap}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:18px 0 26px}
+.bg{border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center;background:var(--surface);opacity:.55}
+.bg.got{opacity:1;border-color:color-mix(in srgb,var(--gold) 55%,var(--line));background:linear-gradient(180deg,var(--gold-soft),var(--surface))}
+.bg svg{width:40px;height:40px;display:block;margin:0 auto 6px}
+.bg b{display:block;font-family:var(--display);font-size:1.12rem}
+.bg small{color:var(--muted);font-size:.78rem}
+.stamps{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.stamp{border:1px dashed var(--line);border-radius:10px;padding:8px;font-size:.8rem;line-height:1.25;background:none;cursor:pointer;text-align:left;color:var(--muted);min-height:54px;display:flex;flex-direction:column;justify-content:space-between}
+.stamp.on{border-style:solid;border-color:var(--gold);color:var(--on-gold);background:linear-gradient(160deg,var(--g1),var(--g2))}
+.stamp small{font-variant-numeric:tabular-nums;opacity:.8}
+.homesel{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.homesel select{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);max-width:240px}
+.flt{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.flt button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.85rem}
+.flt button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+
+/* about */
+.about{max-width:760px}
+.about h1{font-size:clamp(2.2rem,5vw,3.2rem);margin-bottom:12px}
+.about h2{font-size:1.7rem;margin:28px 0 8px}
+.about p{margin:0 0 1em}
+.status-table{width:100%;border-collapse:collapse;font-size:.92rem}
+.status-table td,.status-table th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.status-table th{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tablewrap{overflow-x:auto;max-height:380px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:.9rem;opacity:0;transition:opacity .3s;pointer-events:none;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1}
+.loading{padding:60px 0;text-align:center;color:var(--muted);font-family:var(--display);font-size:1.4rem;font-style:italic}
+.authwrap{position:fixed;inset:0;z-index:60;background:rgba(8,12,30,.55);display:grid;place-items:center;padding:16px}
+.authbox{position:relative;width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px;display:grid;gap:6px;box-shadow:0 30px 60px -30px rgba(0,0,0,.6)}
+.authbox h2{font-size:2rem}
+.authbox label{font-size:.82rem;color:var(--muted);margin-top:6px}
+.authbox input{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2)}
+.authbox .muted{color:var(--muted);margin:0}
+.authmsg{min-height:1.2em;margin:4px 0 0;color:var(--warn);font-size:.9rem}
+.authx{position:absolute;top:10px;right:14px;background:none;border:0;font-size:1.6rem;cursor:pointer;color:var(--muted)}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;justify-self:start;padding:4px 0;font-size:.88rem}
+footer{color:var(--muted);font-size:.8rem;text-align:center;padding:10px 16px 28px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-cross" viewBox="0 0 24 24"><path d="M10.5 2h3v6h6v3h-6v11h-3V11h-6V8h6z" fill="currentColor"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-beads" viewBox="0 0 24 24"><circle cx="12" cy="9" r="6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="1.6 2.2"/><path d="M12 15v3M10 20h4M12 18v4" stroke="currentColor" stroke-width="1.6" fill="none"/></symbol>
+    <symbol id="i-pass" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="11" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 17h6" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" fill="none"/></symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <button class="brand" data-go="map" aria-label="Global Holy Rosary, home">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="17" r="12" style="fill:none;stroke:var(--gold)" stroke-width="2" stroke-dasharray="2.4 2.6"/><circle cx="20" cy="17" r="5.5" style="fill:var(--gold)" opacity=".25"/><path d="M19 29h2v3h3v2h-3v5h-2v-5h-3v-2h3z" style="fill:var(--gold)"/></svg>
+      <span><b>Global Holy Rosary</b><small>Peace through prayer, nation by nation</small></span>
+    </button>
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab" data-go="map">Map</button>
+      <button class="tab" data-go="pray">Pray</button>
+      <button class="tab" data-go="passport">Challenge</button>
+      <button class="tab" data-go="about">About</button>
+    </nav>
+    <button class="btn" id="account-btn" style="padding:7px 14px">Sign in</button>
+  </div>
+</header>
+
+<main id="app" class="wrap"><div class="loading">Unrolling the map of the nations…</div></main>
+
+<nav class="bottombar" aria-label="Sections">
+  <button data-go="map"><svg><use href="#i-globe"/></svg>Map</button>
+  <button data-go="pray"><svg><use href="#i-beads"/></svg>Pray</button>
+  <button data-go="passport"><svg><use href="#i-pass"/></svg>Challenge</button>
+  <button data-go="about"><svg><use href="#i-info"/></svg>About</button>
+</nav>
+<div class="authwrap" id="auth" hidden>
+  <form class="authbox" id="auth-form" novalidate>
+    <button type="button" class="authx" id="auth-close" aria-label="Close">×</button>
+    <div class="eyebrow">Join the pilgrimage</div>
+    <h2>Sign in</h2>
+    <p id="auth-reason" class="muted"></p>
+    <label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="email" required>
+    <label for="auth-pw">Password</label><input id="auth-pw" type="password" autocomplete="current-password" minlength="6" required>
+    <label for="auth-name">Name to show (for new accounts)</label><input id="auth-name" type="text" autocomplete="name">
+    <p id="auth-msg" class="authmsg" role="status"></p>
+    <div class="actions" style="margin-top:6px"><button class="btn gold" type="submit">Sign in</button><button class="btn" type="button" id="auth-up">Create account</button></div>
+    <button type="button" class="linkbtn" id="auth-skip">Pray without signing in</button>
+  </form>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+"use strict";
+const MIN_MS = 8 * 60 * 1000;
+const LEVELS = [[500,5],[100,4],[50,3],[10,2],[1,1]];
+const LEVEL_NAMES = ["Awaiting prayer","First light","Kindled","Radiant","Golden","Glorious"];
+const LEVEL_THRESH = [0,1,10,50,100,500];
+const SETS = ["joyful","luminous","sorrowful","glorious"];
+const SET_EN = {joyful:"Joyful Mysteries",luminous:"Luminous Mysteries",sorrowful:"Sorrowful Mysteries",glorious:"Glorious Mysteries"};
+const DAY_SET = ["glorious","joyful","sorrowful","glorious","luminous","sorrowful","joyful"]; // Sun..Sat
+const PRAYER_EN = {signOfCross:"Sign of the Cross",apostlesCreed:"Apostles’ Creed",ourFather:"Our Father",hailMary:"Hail Mary",gloryBe:"Glory Be",fatimaPrayer:"Fatima Prayer",hailHolyQueen:"Hail, Holy Queen",closingPrayer:"Closing Prayer"};
+const STATUS = {established:["Established text","est"],verify:["Awaiting verification by native speakers",""],partial:["Partially translated","par"]};
+const ORD = ["First","Second","Third","Fourth","Fifth"];
+
+const $ = (s, r=document) => r.querySelector(s);
+const el = (tag, attrs={}, ...kids) => { const e=document.createElement(tag); for (const [k,v] of Object.entries(attrs)) { if (v==null||v===false) continue; if (k==="class") e.className=v; else if (k==="text") e.textContent=v; else if (k.startsWith("on")) e.addEventListener(k.slice(2),v); else e.setAttribute(k,v===true?"":v); } for (const k of kids.flat()) if (k!=null) e.append(k.nodeType?k:document.createTextNode(k)); return e; };
+const levelOf = n => { for (const [t,l] of LEVELS) if (n>=t) return l; return 0; };
+const fmt = n => new Intl.NumberFormat().format(n);
+const today = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const store = { get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch{ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} } };
+let toastT; const toast = msg => { const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),3200); };
+
+const S = {
+  C:[], by:{}, L:{}, map:null, totals:{}, pilgrims:0,
+  db:null, user:null, uid:null, canWrite:true, meName:"",
+  me: { home:null, counts:{}, langs:{}, total:0, days:[] },
+  view:"map", country:null, pray:null, flash:null
+};
+
+/* ---------- data ---------- */
+async function load(){
+  const [c,l,m] = await Promise.all(["data/countries.json","data/languages.json","data/map.json"].map(u=>fetch(u).then(r=>r.json())));
+  S.C = c.sort((a,b)=>a.name.localeCompare(b.name)); for (const x of S.C) S.by[x.iso2]=x;
+  for (const x of l) S.L[x.code]=x; S.map=m;
+  const local = store.get("ghr.me", null); if (local) S.me = Object.assign(S.me, local);
+  recomputeTotalsLocal();
+  route();
+  initCapabilities();
+}
+function recomputeTotalsLocal(){ if (S.sb) return; S.totals = Object.assign({}, S.me.counts); S.pilgrims = S.me.total?1:0; }
+
+/* ---------- backend (Supabase) ---------- */
+const SB_URL = "https://zxuosiojemojbzvjizxd.supabase.co";
+const SB_KEY = "sb_publishable_XgUFzK2RFtVR7CFrVdGzNw_9YZf-vEW";
+async function initCapabilities(){
+  if (!window.supabase?.createClient) { rerender(); return; }
+  S.sb = window.supabase.createClient(SB_URL, SB_KEY);
+  S.sb.auth.onAuthStateChange((_e, session) => { const id = session?.user?.id || null; if (id !== S.uid){ S.uid = id; loadMine().then(()=>rerender()); } paintAccount(); });
+  const { data } = await S.sb.auth.getSession(); S.uid = data.session?.user?.id || null;
+  await Promise.all([loadTotals(), loadMine()]);
+  paintAccount(); rerender();
+  setInterval(()=>{ if (document.visibilityState==="visible") loadTotals().then(()=>rerender(true)); }, 60000);
+}
+async function loadTotals(){
+  try {
+    const [t, g] = await Promise.all([S.sb.rpc("country_totals"), S.sb.rpc("global_stats")]);
+    if (!t.error){ const m={}; for (const r of t.data||[]) if (S.by[r.iso2]) m[r.iso2]=Number(r.rosary_count)||0; S.totals=m; }
+    if (!g.error && g.data && g.data[0]) S.pilgrims = Number(g.data[0].pilgrims)||0;
+  } catch {}
+}
+async function loadMine(){
+  if (!S.sb || !S.uid){ S.meName=""; return; }
+  try {
+    const [r, p] = await Promise.all([
+      S.sb.from("rosaries").select("country_iso2,language_code,completed_at").eq("user_id",S.uid).limit(5000),
+      S.sb.from("profiles").select("display_name,home_country").eq("id",S.uid).maybeSingle()
+    ]);
+    const me = { home:null, counts:{}, langs:{}, total:0, days:[] };
+    for (const x of r.data||[]){ me.counts[x.country_iso2]=(me.counts[x.country_iso2]||0)+1; me.langs[x.language_code]=(me.langs[x.language_code]||0)+1; me.total++; const d=new Date(x.completed_at); const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); if (!me.days.includes(k)) me.days.push(k); }
+    if (p.data){ me.home=p.data.home_country||null; S.meName=p.data.display_name||""; }
+    S.me = me;
+  } catch {}
+}
+async function saveMe(){
+  store.set("ghr.me", S.me);
+  if (!S.sb || !S.uid) return false;
+  const { error } = await S.sb.from("profiles").update({ home_country:S.me.home }).eq("id",S.uid);
+  return !error;
+}
+async function saveRosary(P, completedAt){
+  if (!S.sb || !S.uid) return { ok:false, reason:"signedout" };
+  const { error } = await S.sb.from("rosaries").insert({ user_id:S.uid, country_iso2:P.iso, language_code:P.lang, mystery_set:P.set, started_at:new Date(P.started).toISOString(), completed_at:new Date(completedAt).toISOString() });
+  if (error) return { ok:false, reason:error.message };
+  await loadTotals(); return { ok:true };
+}
+
+/* ---------- account ---------- */
+function paintAccount(){
+  const b = $("#account-btn"); if (!b) return;
+  b.textContent = S.uid ? (S.meName ? S.meName.split(" ")[0] : "My account") : "Sign in";
+}
+function openAuth(reason){
+  const dlg = $("#auth"); $("#auth-reason").textContent = reason || "Sign in to let your Rosaries turn the map gold and keep your Pilgrim’s Passport.";
+  $("#auth-msg").textContent = ""; dlg.hidden = false; $("#auth-email").focus();
+}
+function closeAuth(){ $("#auth").hidden = true; }
+async function authSubmit(mode){
+  const email=$("#auth-email").value.trim(), pw=$("#auth-pw").value, name=$("#auth-name").value.trim(), msg=$("#auth-msg");
+  if (!S.sb){ msg.textContent="The prayer map can’t be reached right now. Please try again later."; return; }
+  if (!email || pw.length<6){ msg.textContent="Enter your email and a password of at least 6 characters."; return; }
+  msg.textContent = mode==="up" ? "Creating your account…" : "Signing in…";
+  if (mode==="up"){
+    const { data, error } = await S.sb.auth.signUp({ email, password:pw, options:{ data:{ display_name:name||undefined }, emailRedirectTo: location.href.split("#")[0] } });
+    if (error){ msg.textContent = error.message; return; }
+    if (!data.session){ msg.textContent = "Almost there. Open the email we sent you and confirm your address, then sign in here."; return; }
+  } else {
+    const { error } = await S.sb.auth.signInWithPassword({ email, password:pw });
+    if (error){ msg.textContent = error.message==="Invalid login credentials" ? "That email and password don’t match an account." : error.message; return; }
+  }
+  closeAuth(); S.pendingPray=null; toast("Welcome, pilgrim."); if (S.afterAuth){ const f=S.afterAuth; S.afterAuth=null; f(); }
+}
+async function signOut(){ if (S.sb) await S.sb.auth.signOut(); S.uid=null; S.me={ home:null, counts:{}, langs:{}, total:0, days:[] }; toast("Signed out."); go("map"); }
+
+/* ---------- routing ---------- */
+function go(view, opts={}){ S.view=view; if (opts.country) S.country=opts.country; route(); window.scrollTo({top:0,behavior:"instant"}); }
+function route(){
+  document.querySelectorAll("[data-go]").forEach(b => { const v=b.dataset.go; if (b.classList.contains("brand")) return; b.toggleAttribute("aria-current", v===S.view || (v==="map" && S.view==="country")); if (b.hasAttribute("aria-current")) b.setAttribute("aria-current","page"); });
+  const app = $("#app"); app.replaceChildren();
+  const v = { map:viewMap, country:viewCountry, pray:viewPray, passport:viewPassport, about:viewAbout, done:viewDone }[S.view] || viewMap;
+  app.append(v());
+}
+function rerender(soft){
+  if (S.view==="pray") { updateHeaderOnly(); return; }
+  if (soft && S.view==="map") { paintMap(); paintStats(); paintLists(); return; }
+  const y = window.scrollY; route(); window.scrollTo({top:y,behavior:"instant"});
+}
+function updateHeaderOnly(){}
+document.addEventListener("click", e => { const b=e.target.closest("[data-go]"); if (!b) return; const v=b.dataset.go; if (v==="pray" && !S.pray) { const iso = S.country || S.me.home || neediest(); return startPray(iso); } go(v); });
+
+/* ---------- helpers ---------- */
+const totalAll = () => Object.values(S.totals).reduce((a,b)=>a+b,0);
+const golden = () => Object.keys(S.totals).filter(k=>S.totals[k]>0).length;
+function neediest(){ const zero = S.C.filter(c=>!(S.totals[c.iso2]>0)); const pool = zero.length?zero:[...S.C].sort((a,b)=>(S.totals[a.iso2]||0)-(S.totals[b.iso2]||0)).slice(0,20); return pool[Math.floor(Math.random()*pool.length)].iso2; }
+function langOptions(c){ const codes=[...c.languages]; for (const x of ["en","la"]) if (!codes.includes(x)) codes.push(x); return codes.filter(k=>S.L[k]); }
+function langLabel(code){ const l=S.L[code]; if (!l) return code; return l.nativeName && l.nativeName!==l.name ? `${l.nativeName} · ${l.name}` : l.name; }
+function statusBadge(code){ const l=S.L[code]; const s=STATUS[l?.status]||STATUS.verify; return el("span",{class:"badge "+s[1],text:s[0]}); }
+function levelSwatch(lv){ return lv?`var(--g${lv})`:"var(--land)"; }
+
+/* ---------- map view ---------- */
+let mapRefs = null;
+function buildMapSvg(){
+  const m = S.map; const NS="http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS,"svg"); svg.id="map"; svg.setAttribute("viewBox",`0 0 ${m.w} ${m.h}`); svg.setAttribute("role","img"); svg.setAttribute("aria-label","World map. Nations turn gold as Rosaries are prayed for them.");
+  svg.innerHTML = `<defs><radialGradient id="seaGrad" cx="50%" cy="45%" r="70%"><stop offset="0" style="stop-color:color-mix(in srgb, var(--sea) 78%, #4a63b0)"/><stop offset="1" style="stop-color:var(--sea)"/></radialGradient><filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path class="sph" d="${m.sphere}"/>`;
+  const g = document.createElementNS(NS,"g"); svg.append(g);
+  const refs = {};
+  for (const s of m.shapes){ const p=document.createElementNS(NS,"path"); p.setAttribute("d",s.d); p.setAttribute("class","land"+(s.k?"":" nodata")); if (s.k){ p.dataset.k=s.k; (refs[s.k] ||= []).push(p); } g.append(p); }
+  for (const d of m.dots){ const c=document.createElementNS(NS,"circle"); c.setAttribute("cx",d.x); c.setAttribute("cy",d.y); c.setAttribute("r",2.6); c.setAttribute("class","dot"); c.dataset.k=d.k; (refs[d.k] ||= []).push(c); g.append(c); }
+  mapRefs = refs; return svg;
+}
+function paintMap(){
+  if (!mapRefs) return;
+  for (const [k,list] of Object.entries(mapRefs)){ const lv=levelOf(S.totals[k]||0); for (const p of list){ const base=p.tagName==="circle"?"dot":"land"; p.setAttribute("class",base+(lv?" l"+lv:"")+(S.flash===k?" flash":"")); } }
+  S.flash=null;
+}
+let statsEls = {};
+function paintStats(){ if (!statsEls.g) return; const g=golden(); statsEls.g.textContent=g; statsEls.t.textContent=fmt(totalAll()); statsEls.p.textContent=fmt(S.pilgrims); statsEls.bar.style.width=(g/S.C.length*100).toFixed(1)+"%"; }
+let listEls = {};
+function paintLists(){
+  if (!listEls.top) return;
+  const top = Object.entries(S.totals).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  listEls.top.replaceChildren(...(top.length?top.map(([k,v])=>el("li",{},el("button",{onclick:()=>go("country",{country:k})},el("span",{text:S.by[k].name}),el("span",{class:"n",text:fmt(v)+(v===1?" Rosary":" Rosaries")})))):[el("li",{class:"empty",text:"No Rosaries yet. The first gold on the map can be yours."})]));
+  const waiting = S.C.filter(c=>!(S.totals[c.iso2]>0));
+  const pick = waiting.slice().sort((a,b)=>a.name.localeCompare(b.name)); const seed = new Date().getDate();
+  const shown = []; for (let i=0;i<Math.min(8,pick.length);i++) shown.push(pick[(seed*7+i*23)%pick.length]);
+  listEls.wait.replaceChildren(...[...new Set(shown)].map(c=>el("li",{},el("button",{onclick:()=>go("country",{country:c.iso2})},el("span",{text:c.name}),el("span",{class:"n",text:"waiting"})))));
+  listEls.waitN.textContent = `${waiting.length} of ${S.C.length} nations are still waiting for their first Rosary.`;
+}
+function viewMap(){
+  const g=golden();
+  const wrap = el("section",{class:"view"});
+  statsEls = { g:el("b",{text:g}), t:el("b",{text:fmt(totalAll())}), p:el("b",{text:fmt(S.pilgrims)}), bar:el("i") };
+  wrap.append(
+    el("div",{class:"hero"},
+      el("div",{}, el("div",{class:"eyebrow",text:"The Global Holy Rosary Challenge"}), el("h1",{},"Pray for every nation, ", el("em",{text:"in its own tongue"}), "."), el("p",{text:"Choose a country, pray the Rosary in its language, and watch it turn to gold. 197 nations, 104 languages, one prayer for peace."})),
+      el("div",{}, el("div",{class:"stats"},
+        el("div",{class:"stat"},statsEls.g,el("span",{text:"of 197 nations golden"})),
+        el("div",{class:"stat"},statsEls.t,el("span",{text:"Rosaries offered"})),
+        el("div",{class:"stat"},statsEls.p,el("span",{text:"pilgrims"}))),
+        el("div",{class:"progress","aria-hidden":"true"},statsEls.bar))
+    )
+  );
+  const card = el("div",{class:"mapcard"}); const svg = buildMapSvg(); const tip = el("div",{class:"tip"});
+  card.append(svg,tip);
+  svg.addEventListener("mousemove", e => { const t=e.target.closest("[data-k]"); if (!t){ tip.style.opacity=0; return; } const k=t.dataset.k, c=S.by[k]; const n=S.totals[k]||0; const r=card.getBoundingClientRect(); tip.style.left=(e.clientX-r.left)+"px"; tip.style.top=(e.clientY-r.top)+"px"; tip.replaceChildren(el("b",{text:c.name}), el("br"), (n? fmt(n)+(n===1?" Rosary":" Rosaries") : "Waiting for its first Rosary")); tip.style.opacity=1; });
+  svg.addEventListener("mouseleave", ()=>tip.style.opacity=0);
+  svg.addEventListener("click", e => { const t=e.target.closest("[data-k]"); if (t) go("country",{country:t.dataset.k}); });
+  wrap.append(card);
+  wrap.append(el("div",{class:"legend"}, ...[0,1,2,3,4,5].map(l=>el("span",{},el("i",{style:`background:${levelSwatch(l)}`}), `${LEVEL_NAMES[l]}${l?` (${LEVEL_THRESH[l]}+)`:""}`))));
+  const input = el("input",{id:"country-search",type:"search",placeholder:"Find a nation (including the smallest)…","aria-label":"Find a nation",autocomplete:"off"});
+  const res = el("div",{class:"results",hidden:true});
+  input.addEventListener("input", () => { const q=input.value.trim().toLowerCase(); if (!q){ res.hidden=true; return; } const hits=S.C.filter(c=>c.name.toLowerCase().includes(q)).slice(0,12); res.replaceChildren(...(hits.length?hits.map(c=>el("button",{onclick:()=>go("country",{country:c.iso2})},el("span",{text:c.name}),el("small",{text:(S.totals[c.iso2]||0)?fmt(S.totals[c.iso2])+" ✦":"waiting"}))):[el("div",{style:"padding:10px 14px",class:"empty",text:"No nation by that name."})])); res.hidden=false; });
+  input.addEventListener("keydown", e => { if (e.key==="Enter"){ const b=res.querySelector("button"); if (b) b.click(); } });
+  wrap.append(el("div",{class:"actions"},
+    el("div",{class:"search"},input,res),
+    el("button",{class:"btn gold",onclick:()=>go("country",{country:neediest()})}, "✝ Pray for a nation that needs it"),
+    S.me.home ? el("button",{class:"btn",onclick:()=>go("country",{country:S.me.home}),text:"My home nation: "+S.by[S.me.home].name}) : null
+  ));
+  listEls = { top:el("ul",{class:"nlist"}), wait:el("ul",{class:"nlist"}), waitN:el("p",{class:"empty",style:"margin:0 0 8px"}) };
+  wrap.append(el("div",{class:"twocol"},
+    el("div",{class:"panel"},el("h3",{text:"Most prayed for"}),listEls.top),
+    el("div",{class:"panel"},el("h3",{text:"Waiting for their first Rosary"}),listEls.waitN,listEls.wait)
+  ));
+  if (!S.uid) wrap.append(el("p",{class:"empty",style:"margin-top:18px;font-size:.88rem"},"Sign in so your Rosaries turn the shared world map gold. ",el("button",{class:"btn ghost",style:"padding:4px 12px",onclick:()=>openAuth(),text:"Sign in or create an account"})));
+  requestAnimationFrame(()=>{ paintMap(); paintStats(); paintLists(); });
+  return wrap;
+}
+
+/* ---------- country view ---------- */
+function viewCountry(){
+  const c = S.by[S.country] || S.C[0]; const n=S.totals[c.iso2]||0; const lv=levelOf(n); const mine=S.me.counts[c.iso2]||0;
+  const wrap = el("article",{class:"view"});
+  wrap.append(el("button",{class:"back",onclick:()=>go("map"),text:"← Back to the map"}));
+  wrap.append(el("div",{class:"chead"},
+    el("div",{}, el("div",{class:"eyebrow",text:"A nation to pray for"}), el("h1",{text:c.name}), el("div",{class:"presence",text:c.catholicPresence})),
+    el("div",{style:"display:grid;gap:6px;justify-items:start"},
+      el("span",{class:"levelchip"},el("i",{style:`background:${levelSwatch(lv)}`}),`${LEVEL_NAMES[lv]} · ${fmt(n)} ${n===1?"Rosary":"Rosaries"}`),
+      mine? el("span",{class:"levelchip"},el("i",{style:"background:var(--gold)"}),`You: ${mine}`):null)
+  ));
+  wrap.append(el("blockquote",{class:"intention"},el("small",{text:"Prayer intention"}),c.prayerIntention));
+  const sel = el("select",{id:"lang-select","aria-label":"Language to pray in"}, ...langOptions(c).map(k=>el("option",{value:k,text:langLabel(k)})));
+  const badgeSlot = el("span"); const setB=()=>badgeSlot.replaceChildren(statusBadge(sel.value)); sel.addEventListener("change",setB); setB();
+  wrap.append(el("div",{class:"praybox"},
+    el("button",{class:"btn gold",onclick:()=>startPray(c.iso2, sel.value)},"Pray the Rosary for "+c.name),
+    el("label",{for:"lang-select",text:"in"}), sel, badgeSlot));
+  const hist = el("div",{class:"prose"}, ...String(c.history||"").split(/\n\n+/).map(p=>el("p",{text:p})));
+  const saints = (c.saints||[]).length ? el("div",{class:"cards"}, ...c.saints.map(s=>el("div",{class:"card"},el("h3",{text:s.name}), s.years?el("div",{class:"meta",text:s.years}):null, el("p",{text:s.story})))) : el("p",{class:"empty",text:"No canonised saints are tied to this land yet. Its holiness is still being written."});
+  const cath = (c.cathedrals||[]).length ? el("div",{class:"cards"}, ...c.cathedrals.map(s=>el("div",{class:"card"},el("h3",{text:s.name}), el("div",{class:"meta",text:s.city}), el("p",{text:s.story})))) : el("p",{class:"empty",text:"There is no public Catholic church here today. The faithful pray in hiddenness."});
+  const patrons = (c.patronSaints||[]).length ? el("div",{class:"patrons"}, ...c.patronSaints.map(p=>el("span",{},p.name, p.feast?el("small",{text:p.feast}):null))) : el("p",{class:"empty",text:"No official national patron is recorded."});
+  const langs = el("ul",{class:"nlist"}, ...c.languages.filter(k=>S.L[k]).map(k=>el("li",{},el("button",{onclick:()=>startPray(c.iso2,k)},el("span",{text:langLabel(k)}),statusBadge(k)))));
+  wrap.append(el("div",{class:"cgrid"},
+    el("div",{}, el("section",{class:"sec",style:"margin-top:0"},el("h2",{text:"Catholic history"}),hist),
+      el("section",{class:"sec"},el("h2",{text:"Saints"}),saints),
+      el("section",{class:"sec"},el("h2",{text:"Cathedrals & shrines"}),cath)),
+    el("aside",{class:"side"},
+      el("div",{class:"panel"},el("h3",{text:"Patron"}),patrons),
+      el("div",{class:"panel"},el("h3",{text:"Languages of prayer"}),langs),
+      el("div",{class:"panel"},el("h3",{text:"How this nation turns gold"}),el("p",{style:"margin:0;color:var(--muted)",text:"Every Rosary offered for "+c.name+" adds to its glow: first light at 1, kindled at 10, radiant at 50, golden at 100, glorious at 500."})))
+  ));
+  return wrap;
+}
+
+/* ---------- rosary engine ---------- */
+function buildSteps(){
+  const s=[]; const P=(p,b,extra={})=>s.push({kind:"prayer",p,b,...extra});
+  P("signOfCross","cross"); P("apostlesCreed","cross"); P("ourFather","P0");
+  ["for an increase of faith","for an increase of hope","for an increase of charity"].forEach((n,i)=>P("hailMary","P"+(i+1),{note:n,count:[i+1,3]}));
+  P("gloryBe","P4");
+  for (let d=0; d<5; d++){
+    const big = d===0?"P4":"L"+d;
+    s.push({kind:"mystery",d,b:big});
+    P("ourFather",big,{d});
+    for (let i=0;i<10;i++) P("hailMary",`D${d}-${i}`,{d,count:[i+1,10]});
+    P("gloryBe",`D${d}-9`,{d}); P("fatimaPrayer",`D${d}-9`,{d});
+  }
+  P("hailHolyQueen","medal"); P("closingPrayer","medal"); P("signOfCross","cross",{final:true});
+  return s;
+}
+const STEPS = buildSteps();
+function beadSvg(){
+  const NS="http://www.w3.org/2000/svg"; const svg=document.createElementNS(NS,"svg"); svg.id="beads"; svg.setAttribute("viewBox","0 0 240 380"); svg.setAttribute("role","img"); svg.setAttribute("aria-label","Rosary beads");
+  const cx=120, cy=112, r=96; const items=[];
+  for (let d=0; d<5; d++){ for (let i=0;i<10;i++) items.push({k:`D${d}-${i}`,big:false}); if (d<4) items.push({k:"L"+(d+1),big:true}); }
+  const gap = 0.42; const start = Math.PI/2 + gap/2; const span = 2*Math.PI - gap; // start at bottom, go clockwise (left side up)
+  let defs = `<defs><filter id="beadglow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+  let html = defs + `<circle class="chain" cx="${cx}" cy="${cy}" r="${r}"/><path class="chain" d="M120 ${cy+r} V 336"/>`;
+  items.forEach((it,i)=>{ const a = start + span*(i+0.5)/items.length; const x=cx+r*Math.cos(a), y=cy+r*Math.sin(a); html += `<circle class="bd" data-b="${it.k}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${it.big?7:4.6}"/>`; });
+  html += `<path class="bd" data-b="medal" d="M120 ${cy+r-9} l9 9 l-9 13 l-9 -13z"/>`;
+  const py = [238,254,268,282,300]; ["P4","P3","P2","P1","P0"].forEach((k,i)=>{ html += `<circle class="bd" data-b="${k}" cx="120" cy="${py[i]}" r="${k==="P4"||k==="P0"?7:4.6}"/>`; });
+  html += `<path class="cross" data-b="cross" d="M116 314h8v12h11v8h-11v30h-8v-30h-11v-8h11z"/>`;
+  svg.innerHTML = html; return svg;
+}
+function prayerText(lang, key){ const t = S.L[lang]?.prayers?.[key]; return (typeof t==="string" && t.trim()) ? t : null; }
+function mysteryTitle(lang,set,d){ const m=S.L[lang]?.mysteries?.[set]; return (Array.isArray(m)&&m[d]) ? m[d] : (S.L.en?.mysteries?.[set]?.[d] || ""); }
+function setLabel(lang,set){ return S.L[lang]?.labels?.[set] || SET_EN[set]; }
+
+function startPray(iso, lang, skipAuth){
+  const c=S.by[iso]; if (!c) return;
+  if (S.sb && !S.uid && !skipAuth){ S.afterAuth=()=>startPray(iso,lang,true); S.pendingPray=()=>{ closeAuth(); startPray(iso,lang,true); }; openAuth("Sign in before you begin, so this Rosary can turn "+c.name+" gold."); return; }
+  lang = lang || langOptions(c)[0];
+  S.pray = { iso, lang, set: DAY_SET[new Date().getDay()], i:0, started:Date.now(), showEn: lang!=="en", fallbackLa:false };
+  S.view="pray"; route(); window.scrollTo({top:0,behavior:"instant"});
+}
+let prayEls = {}; let timerInt;
+function viewPray(){
+  const P=S.pray; if (!P){ return el("div",{class:"loading",text:"Choose a nation on the map to begin."}); }
+  const c=S.by[P.iso];
+  const wrap = el("section",{class:"view"});
+  const setSel = el("select",{id:"set-select","aria-label":"Mysteries"}, ...SETS.map(k=>el("option",{value:k,text:SET_EN[k],selected:k===P.set})));
+  setSel.addEventListener("change",()=>{ P.set=setSel.value; paintStep(); });
+  const lSel = el("select",{id:"pray-lang","aria-label":"Language"}, ...langOptions(c).map(k=>el("option",{value:k,text:langLabel(k),selected:k===P.lang})));
+  lSel.addEventListener("change",()=>{ P.lang=lSel.value; P.showEn = P.lang!=="en"; enChk.checked=P.showEn; enLbl.hidden = P.lang==="en"; paintStep(); });
+  const enChk = el("input",{type:"checkbox",id:"show-en",checked:P.showEn}); enChk.addEventListener("change",()=>{ P.showEn=enChk.checked; paintStep(); });
+  const enLbl = el("label",{class:"toggle",for:"show-en",hidden:P.lang==="en"},enChk,"Show English beneath");
+  wrap.append(el("div",{class:"prayhead"},
+    el("div",{}, el("div",{class:"eyebrow",text:"Praying for"}), el("h1",{text:c.name}), el("div",{class:"sub",text:"Today: "+SET_EN[DAY_SET[new Date().getDay()]]})),
+    el("div",{class:"prayctl"}, lSel, setSel, enLbl)));
+  const beads = beadSvg(); const timer = el("div",{class:"timer"});
+  const card = el("div",{class:"pcard",tabindex:"0","aria-live":"polite"});
+  card.addEventListener("click", e => { if (e.target.closest("button,select,input,label")) return; next(); });
+  const prev = el("button",{class:"btn ghost",onclick:()=>{ if (P.i>0){ P.i--; paintStep(); } }},"← Back");
+  const nxt = el("button",{class:"btn gold",onclick:()=>next()},"Amen · Next →");
+  wrap.append(el("div",{class:"praylay"},
+    el("div",{class:"beadwrap"},beads,timer),
+    el("div",{}, card, el("div",{class:"pnav"},prev,nxt), el("div",{class:"hint",text:"Tap the prayer, or press Space / → to continue."}))));
+  prayEls = { beads, card, prev, nxt, timer };
+  requestAnimationFrame(paintStep);
+  clearInterval(timerInt); timerInt = setInterval(()=>{ if (S.view!=="pray"||!S.pray) return clearInterval(timerInt); const ms=Date.now()-S.pray.started; const m=Math.floor(ms/60000), s=Math.floor(ms/1000)%60; prayEls.timer.textContent=`${m}:${String(s).padStart(2,"0")} in prayer`; },1000);
+  return wrap;
+}
+function next(){ const P=S.pray; if (!P) return; if (P.i < STEPS.length-1){ P.i++; paintStep(); } else finish(); }
+document.addEventListener("keydown", e => { if (S.view!=="pray"||!S.pray) return; if (e.target.closest && e.target.closest("select,input,textarea")) return; if (e.key===" "||e.key==="ArrowRight"||e.key==="Enter"){ e.preventDefault(); next(); } else if (e.key==="ArrowLeft"){ if (S.pray.i>0){ S.pray.i--; paintStep(); } } });
+function paintStep(){
+  const P=S.pray; const st=STEPS[P.i]; const {card,beads,prev,nxt}=prayEls; if (!card) return;
+  const visited=new Set(STEPS.slice(0,P.i).map(s=>s.b));
+  beads.querySelectorAll("[data-b]").forEach(b=>{ const k=b.dataset.b; b.classList.toggle("cur",k===st.b); b.classList.toggle("done",visited.has(k)&&k!==st.b); });
+  prev.disabled = P.i===0; nxt.textContent = P.i===STEPS.length-1 ? "Amen · Offer this Rosary" : "Amen · Next →";
+  const lang=P.lang; const kids=[];
+  const progress = el("span",{text:`${P.i+1} / ${STEPS.length}`});
+  if (st.kind==="mystery"){
+    kids.push(el("div",{class:"step"},el("b",{text:setLabel(lang,P.set)}),progress));
+    kids.push(el("div",{class:"mnum",text:`${ORD[st.d]} Mystery`}));
+    kids.push(el("div",{class:"mtitle",dir:S.L[lang]?.dir||"ltr",text:mysteryTitle(lang,P.set,st.d)}));
+    if (lang!=="en" && P.showEn) kids.push(el("div",{class:"ptrans",text:S.L.en?.mysteries?.[P.set]?.[st.d]||""}));
+    kids.push(el("div",{class:"mys",text:`Let us contemplate this mystery, and offer the decade for ${S.by[P.iso].name}.`}));
+  } else {
+    const name = PRAYER_EN[st.p];
+    let label = name; if (st.count) label += ` · ${st.count[0]} of ${st.count[1]}`;
+    kids.push(el("div",{class:"step"},el("b",{text:label}),progress));
+    if (st.d!=null) kids.push(el("div",{class:"mys",text:`${ORD[st.d]} ${SET_EN[P.set].replace(" Mysteries","")} Mystery: ${mysteryTitle("en",P.set,st.d)}`}));
+    else if (st.note) kids.push(el("div",{class:"mys",text:st.note}));
+    let text = prayerText(lang, st.p); let shown=lang; let fell=false;
+    if (!text){ fell=true; shown = P.fallbackLa ? "la" : "en"; text = prayerText(shown, st.p) || ""; }
+    const long = text.length>420;
+    kids.push(el("p",{class:"ptext"+(long?" small":""),dir:S.L[shown]?.dir||"ltr",lang:shown,text}));
+    if (fell){ kids.push(el("div",{class:"fallback"}, `This prayer isn’t yet available in ${S.L[lang]?.name||lang}. Shown in ${shown==="la"?"Latin":"English"}.`, el("button",{onclick:e=>{e.stopPropagation(); P.fallbackLa=!P.fallbackLa; paintStep();}},shown==="la"?"Show English":"Show Latin"))); }
+    else if (P.showEn && lang!=="en"){ const en=prayerText("en",st.p); if (en) kids.push(el("div",{class:"ptrans",text:en})); }
+  }
+  card.replaceChildren(...kids);
+}
+
+/* ---------- finishing ---------- */
+async function finish(){
+  const P=S.pray; const ms=Date.now()-P.started; const counted = ms>=MIN_MS;
+  S.done = { iso:P.iso, lang:P.lang, ms, counted, saved:null };
+  if (counted){
+    const m=S.me; m.counts[P.iso]=(m.counts[P.iso]||0)+1; m.langs[P.lang]=(m.langs[P.lang]||0)+1; m.total=(m.total||0)+1; const t=today(); if (!m.days.includes(t)) m.days.push(t);
+    if (!S.uid) { S.totals[P.iso]=(S.totals[P.iso]||0)+1; store.set("ghr.me", S.me); }
+    S.flash = P.iso;
+  }
+  const doneAt = Date.now(); const prayed = {...P};
+  S.pray=null; S.view="done"; route(); window.scrollTo({top:0,behavior:"instant"});
+  if (counted && S.uid){ const r = await saveRosary(prayed, doneAt); S.done.saved = r.ok; S.done.err = r.reason; if (S.view==="done") route(); }
+}
+function viewDone(){
+  const D=S.done; const c=S.by[D.iso]; const wrap=el("section",{class:"view"}); const box=el("div",{class:"celebrate"});
+  const mins = Math.max(1,Math.round(D.ms/60000));
+  box.append(el("div",{class:"eyebrow",text:D.counted?"Your Rosary is offered":"Your prayer is heard"}));
+  box.append(el("h1",{text: D.counted ? `${c.name} glows a little brighter.` : `Thank you for praying for ${c.name}.`}));
+  box.append(el("p",{text: D.counted ? `You prayed for ${mins} minutes in ${S.L[D.lang]?.name||D.lang}. ${c.name} now holds ${fmt(S.totals[D.iso]||1)} ${ (S.totals[D.iso]||1)===1?"Rosary":"Rosaries"} on the map.` : `This Rosary took ${mins} ${mins===1?"minute":"minutes"}. To keep the map honest, a Rosary turns a nation gold after at least 8 minutes of prayer. Nothing you prayed is lost before God.`}));
+  // minimap with this nation highlighted
+  const m=S.map; const NS="http://www.w3.org/2000/svg"; const sv=document.createElementNS(NS,"svg"); sv.setAttribute("viewBox",`0 0 ${m.w} ${m.h}`); sv.setAttribute("aria-hidden","true");
+  sv.innerHTML = `<defs><filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>` + m.shapes.map(s=>`<path d="${s.d}" class="${s.k===D.iso?"me":""}"/>`).join("") + m.dots.filter(d=>d.k===D.iso).map(d=>`<circle cx="${d.x}" cy="${d.y}" r="8" style="fill:var(--g2)" filter="url(#glow2)"/>`).join("");
+  box.append(el("div",{class:"minimap"},sv));
+  if (D.counted && S.uid && D.saved===false) box.append(el("p",{class:"note",text:"Your Rosary couldn’t be added to the world map just now ("+(D.err||"connection problem")+"). It is still kept in this browser."}));
+  if (D.counted && !S.uid) box.append(el("p",{class:"note",text:"You prayed without signing in, so this Rosary is kept in this browser only. Sign in next time to turn the world map gold."}));
+  box.append(el("div",{class:"actions",style:"justify-content:center"},
+    el("button",{class:"btn gold",onclick:()=>go("country",{country:neediest()})},"Pray for another nation"),
+    el("button",{class:"btn",onclick:()=>go("map"),text:"See the world map"}),
+    el("button",{class:"btn ghost",onclick:()=>go("passport"),text:"My passport"})));
+  wrap.append(box); return wrap;
+}
+
+/* ---------- passport / challenge ---------- */
+function streak(days){ const set=new Set(days); let n=0; const d=new Date(); if (!set.has(today())) d.setDate(d.getDate()-1); for(;;){ const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); if (set.has(k)){ n++; d.setDate(d.getDate()-1);} else break; } return n; }
+const PILGRIM_LEVELS = [[0,"Seeker"],[1,"Pilgrim"],[10,"Faithful Pilgrim"],[33,"Rosary Bearer"],[100,"Herald of Peace"],[197,"Pilgrim of the Nations"],[500,"Golden Rose"]];
+function viewPassport(){
+  const m=S.me; const nations=Object.keys(m.counts).filter(k=>m.counts[k]>0&&S.by[k]); const nl=Object.keys(m.langs).filter(k=>m.langs[k]>0).length; const st=streak(m.days||[]);
+  let lvl="Seeker"; for (const [t,n] of PILGRIM_LEVELS) if (m.total>=t) lvl=n;
+  const wrap=el("section",{class:"view"});
+  wrap.append(el("div",{class:"pp-head"},
+    el("div",{}, el("div",{class:"eyebrow",text:"Pilgrim’s Passport"}), el("h1",{text:(S.meName? S.meName.split(" ")[0]+", ":"")+lvl}), el("p",{style:"color:var(--muted);margin:.4rem 0 0",text:`${nations.length} of ${S.C.length} nations stamped. The challenge is complete when every nation carries your prayer.`})),
+    el("div",{class:"levelbox"},
+      el("div",{class:"stat"},el("b",{text:fmt(m.total||0)}),el("span",{text:"Rosaries"})),
+      el("div",{class:"stat"},el("b",{text:nl}),el("span",{text:"languages"})),
+      el("div",{class:"stat"},el("b",{text:st}),el("span",{text:"day streak"})))));
+  const homeSel = el("select",{id:"home-select"}, el("option",{value:"",text:"Choose…"}), ...S.C.map(c=>el("option",{value:c.iso2,text:c.name,selected:c.iso2===m.home})));
+  homeSel.addEventListener("change", async ()=>{ m.home=homeSel.value||null; const ok=await saveMe(); toast(ok?"Home nation saved.":"Saved in this browser."); });
+  wrap.append(el("div",{class:"homesel"},el("label",{for:"home-select",text:"Home nation"}),homeSel));
+  const B = [
+    ["First Rosary","Offer your first Rosary",m.total>=1],
+    ["Seven nations","Pray for 7 different nations",nations.length>=7],
+    ["Week of prayer","Pray 7 days in a row",st>=7],
+    ["Polyglot","Pray in 5 languages",nl>=5],
+    ["Thirty-three","33 Rosaries, one for each year of Christ’s life",m.total>=33],
+    ["Month of Mary","Pray 30 days in a row",st>=30],
+    ["Tongues of fire","Pray in 25 languages",nl>=25],
+    ["Every nation","Pray for all 197 nations",nations.length>=S.C.length]
+  ];
+  wrap.append(el("div",{class:"badges"}, ...B.map(([t,d,got])=>{ const b=el("div",{class:"bg"+(got?" got":"")}); b.innerHTML=`<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16" style="fill:none;stroke:${got?"var(--gold)":"var(--line)"}" stroke-width="2" stroke-dasharray="${got?"0":"3 3"}"/><path d="M18.5 9h3v8h8v3h-8v11h-3V20h-8v-3h8z" style="fill:${got?"var(--gold)":"var(--line)"}"/></svg>`; b.append(el("b",{text:t}),el("small",{text:got?"Received":d})); return b; })));
+  let filter = "all";
+  const grid = el("div",{class:"stamps"});
+  const paint = () => { const list = S.C.filter(c=> filter==="all" || (filter==="done" ? m.counts[c.iso2]>0 : !(m.counts[c.iso2]>0))); grid.replaceChildren(...list.map(c=>{ const n=m.counts[c.iso2]||0; return el("button",{class:"stamp"+(n?" on":""),onclick:()=>go("country",{country:c.iso2})},el("span",{text:c.name}),el("small",{text:n?`✦ ${n}`:"—"})); })); };
+  const fb = ["all","done","todo"].map(k=>el("button",{"aria-pressed":String(k===filter),onclick:e=>{ filter=k; fb.forEach(b=>b.setAttribute("aria-pressed",String(b===e.currentTarget))); paint(); },text:{all:"All nations",done:"Stamped",todo:"Still to pray"}[k]}));
+  wrap.append(el("section",{class:"sec"},el("h2",{text:"Your nations"}),el("div",{class:"flt"},...fb),grid));
+  paint();
+  wrap.append(el("div",{class:"actions"}, S.uid ? el("button",{class:"btn ghost",onclick:signOut,text:"Sign out"}) : el("button",{class:"btn gold",onclick:()=>openAuth(),text:"Sign in to keep your passport"})));
+  return wrap;
+}
+
+/* ---------- about ---------- */
+function viewAbout(){
+  const counts={established:0,verify:0,partial:0}; for (const l of Object.values(S.L)) counts[l.status]=(counts[l.status]||0)+1;
+  const wrap=el("section",{class:"view about"});
+  wrap.append(el("div",{class:"eyebrow",text:"About"}), el("h1",{text:"One prayer, every nation"}),
+    el("p",{text:"Global Holy Rosary invites people everywhere to pray the Rosary for peace, for every nation on earth, in that nation’s own language. Each Rosary offered for a country adds to its glow on the world map, until the whole world shines gold."}),
+    el("p",{text:"Praying is always free. A Rosary counts toward the map after at least 8 minutes of prayer, so the gold reflects real prayer and not quick taps."}),
+    el("h2",{text:"About the translations"}),
+    el("p",{text:`Of the ${Object.keys(S.L).length} languages here, ${counts.established} use the established text Catholics pray today. ${counts.verify} are awaiting verification by native Catholic speakers, and ${counts.partial} are partially translated. Where a prayer is missing, the app shows English or Latin rather than invent words people would pray. If you pray in one of these languages and can check the text, your help is very welcome.`}));
+  const rows = Object.values(S.L).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>el("tr",{},el("td",{text:l.name}),el("td",{text:l.nativeName||""}),el("td",{},statusBadge(l.code))));
+  wrap.append(el("div",{class:"tablewrap"},el("table",{class:"status-table"},el("thead",{},el("tr",{},el("th",{text:"Language"}),el("th",{text:"Native name"}),el("th",{text:"Status"}))),el("tbody",{},...rows))));
+  wrap.append(el("h2",{text:"Give"}),
+    el("p",{text:"Profits and donations will support pro-life organisations. Giving opens once the organisations and the way funds are shared are listed here, so every gift is transparent."}),
+    el("button",{class:"btn",disabled:true,text:"Donations open soon"}),
+    el("h2",{text:"About the history"}),
+    el("p",{text:"Each nation’s Catholic history, saints and cathedrals were written with care to be accurate. Where facts were uncertain they were left out rather than guessed, and some entries honestly note that a nation has few Catholics or no public church today."}));
+  return wrap;
+}
+
+$("#account-btn").addEventListener("click",()=>{ if (S.uid) go("passport"); else openAuth(); });
+$("#auth-close").addEventListener("click",()=>{ S.afterAuth=null; closeAuth(); });
+$("#auth-form").addEventListener("submit",e=>{ e.preventDefault(); authSubmit("in"); });
+$("#auth-up").addEventListener("click",()=>authSubmit("up"));
+$("#auth-skip").addEventListener("click",()=>{ S.afterAuth=null; if (S.pendingPray){ const f=S.pendingPray; S.pendingPray=null; f(); } else closeAuth(); });
+document.addEventListener("keydown",e=>{ if (e.key==="Escape" && !$("#auth").hidden) closeAuth(); });
+load().catch(err => { $("#app").replaceChildren(el("div",{class:"loading",text:"The map could not be loaded. Please reload the page."})); console.error(err); });
+})();
+</script>
+<footer>Global Holy Rosary · Ad Jesum per Mariam</footer>
+
+</body>
+</html>
