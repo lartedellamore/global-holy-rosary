@@ -189,6 +189,11 @@ h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.1;text-wrap:ba
 .pcard .mys{margin-top:10px;font-family:var(--display);font-style:italic;font-size:1.15rem;color:var(--muted)}
 .ptext{font-family:var(--pray);font-size:clamp(1.35rem,2.6vw,1.85rem);line-height:1.5;margin:18px 0 0;white-space:pre-line}
 .ptext.small{font-size:clamp(1.15rem,2.1vw,1.45rem)}
+.ppron{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--surface-2);border:1px dashed color-mix(in srgb,var(--gold) 45%,var(--line));font-family:var(--body);font-size:1.08rem;line-height:1.6;color:var(--ink);letter-spacing:.01em}
+.ppron small{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:4px}
+.ppron small i{font-style:normal;letter-spacing:.04em;text-transform:none;color:var(--muted);font-weight:400}
+.listen{display:inline-flex;align-items:center;gap:6px;margin-top:12px;background:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.85rem;color:var(--ink)}
+.listen:hover{border-color:var(--gold)}
 .ptrans{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-family:var(--display);font-size:1.12rem;line-height:1.5;color:var(--muted)}
 .mtitle{font-family:var(--display);font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.15;margin-top:18px}
 .mnum{font-family:var(--display);font-size:1rem;color:var(--muted);margin-top:6px}
@@ -337,6 +342,7 @@ const S = {
 /* ---------- data ---------- */
 async function load(){
   const [c,l,m] = await Promise.all(["data/countries.json","data/languages.json","data/map.json"].map(u=>fetch(u).then(r=>r.json())));
+  fetch("data/pronunciations.json").then(r=>r.json()).then(p=>{ S.PR=p; if (S.view==="pray") paintStep(); }).catch(()=>{});
   S.C = c.sort((a,b)=>a.name.localeCompare(b.name)); for (const x of S.C) S.by[x.iso2]=x;
   for (const x of l) S.L[x.code]=x; S.map=m;
   const local = store.get("ghr.me", null); if (local) S.me = Object.assign(S.me, local);
@@ -585,7 +591,7 @@ function startPray(iso, lang, skipAuth){
   const c=S.by[iso]; if (!c) return;
   if (S.sb && !S.uid && !skipAuth){ S.afterAuth=()=>startPray(iso,lang,true); S.pendingPray=()=>{ closeAuth(); startPray(iso,lang,true); }; openAuth("Sign in before you begin, so this Rosary can turn "+c.name+" gold."); return; }
   lang = lang || langOptions(c)[0];
-  S.pray = { iso, lang, set: DAY_SET[new Date().getDay()], i:0, started:Date.now(), showEn: lang!=="en", fallbackLa:false };
+  S.pray = { iso, lang, set: DAY_SET[new Date().getDay()], i:0, started:Date.now(), showEn: false, showPron: lang!=="en", fallbackLa:false };
   S.view="pray"; route(); window.scrollTo({top:0,behavior:"instant"});
 }
 let prayEls = {}; let timerInt;
@@ -596,12 +602,14 @@ function viewPray(){
   const setSel = el("select",{id:"set-select","aria-label":"Mysteries"}, ...SETS.map(k=>el("option",{value:k,text:SET_EN[k],selected:k===P.set})));
   setSel.addEventListener("change",()=>{ P.set=setSel.value; paintStep(); });
   const lSel = el("select",{id:"pray-lang","aria-label":"Language"}, ...langOptions(c).map(k=>el("option",{value:k,text:langLabel(k),selected:k===P.lang})));
-  lSel.addEventListener("change",()=>{ P.lang=lSel.value; P.showEn = P.lang!=="en"; enChk.checked=P.showEn; enLbl.hidden = P.lang==="en"; paintStep(); });
+  lSel.addEventListener("change",()=>{ P.lang=lSel.value; P.showPron = P.lang!=="en"; prChk.checked=P.showPron; enLbl.hidden = P.lang==="en"; prLbl.hidden = P.lang==="en"; paintStep(); });
   const enChk = el("input",{type:"checkbox",id:"show-en",checked:P.showEn}); enChk.addEventListener("change",()=>{ P.showEn=enChk.checked; paintStep(); });
-  const enLbl = el("label",{class:"toggle",for:"show-en",hidden:P.lang==="en"},enChk,"Show English beneath");
+  const enLbl = el("label",{class:"toggle",for:"show-en",hidden:P.lang==="en"},enChk,"Show English meaning");
+  const prChk = el("input",{type:"checkbox",id:"show-pron",checked:P.showPron}); prChk.addEventListener("change",()=>{ P.showPron=prChk.checked; paintStep(); });
+  const prLbl = el("label",{class:"toggle",for:"show-pron",hidden:P.lang==="en"},prChk,"Show pronunciation");
   wrap.append(el("div",{class:"prayhead"},
     el("div",{}, el("div",{class:"eyebrow",text:"Praying for"}), el("h1",{text:c.name}), el("div",{class:"sub",text:"Today: "+SET_EN[DAY_SET[new Date().getDay()]]})),
-    el("div",{class:"prayctl"}, lSel, setSel, enLbl)));
+    el("div",{class:"prayctl"}, lSel, setSel, prLbl, enLbl)));
   const beads = beadSvg(); const timer = el("div",{class:"timer"});
   const card = el("div",{class:"pcard",tabindex:"0","aria-live":"polite"});
   card.addEventListener("click", e => { if (e.target.closest("button,select,input,label")) return; next(); });
@@ -617,7 +625,17 @@ function viewPray(){
 }
 function next(){ const P=S.pray; if (!P) return; if (P.i < STEPS.length-1){ P.i++; paintStep(); } else finish(); }
 document.addEventListener("keydown", e => { if (S.view!=="pray"||!S.pray) return; if (e.target.closest && e.target.closest("select,input,textarea")) return; if (e.key===" "||e.key==="ArrowRight"||e.key==="Enter"){ e.preventDefault(); next(); } else if (e.key==="ArrowLeft"){ if (S.pray.i>0){ S.pray.i--; paintStep(); } } });
+const BCP = {tl:"fil",no:"nb",tet:"pt-TL",tpi:"en",bi:"en",tvl:"en",la:"it",sm:"en",fj:"en"};
+function pronBox(code, text){ const approx=S.PR?.[code]?.approx; return el("div",{class:"ppron",lang:"en"}, el("small",{}, "Say it like this", el("i",{text: approx?"approximate, capitals show the stressed syllable":"capitals show the stressed syllable"})), text); }
+function voiceFor(code){ if (!("speechSynthesis" in window)) return null; const want=(BCP[code]||code).toLowerCase(); const vs=speechSynthesis.getVoices(); return vs.find(v=>v.lang.toLowerCase()===want) || vs.find(v=>v.lang.toLowerCase().startsWith(want.split("-")[0]+"-")) || vs.find(v=>v.lang.toLowerCase()===want.split("-")[0]) || null; }
+if ("speechSynthesis" in window) speechSynthesis.addEventListener?.("voiceschanged",()=>{ if (S.view==="pray" && S.pray) paintStep(); });
+function listenBtn(code, text){
+  if (!text || ["tpi","bi","tvl","sm","fj"].includes(code)) return null;
+  const v=voiceFor(code); if (!v) return null;
+  return el("button",{class:"listen",type:"button",onclick:e=>{ e.stopPropagation(); if (speechSynthesis.speaking){ speechSynthesis.cancel(); return; } const u=new SpeechSynthesisUtterance(text); u.voice=v; u.lang=v.lang; u.rate=.85; speechSynthesis.speak(u); }},"▶ Listen");
+}
 function paintStep(){
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
   const P=S.pray; const st=STEPS[P.i]; const {card,beads,prev,nxt}=prayEls; if (!card) return;
   const visited=new Set(STEPS.slice(0,P.i).map(s=>s.b));
   beads.querySelectorAll("[data-b]").forEach(b=>{ const k=b.dataset.b; b.classList.toggle("cur",k===st.b); b.classList.toggle("done",visited.has(k)&&k!==st.b); });
@@ -628,6 +646,8 @@ function paintStep(){
     kids.push(el("div",{class:"step"},el("b",{text:setLabel(lang,P.set)}),progress));
     kids.push(el("div",{class:"mnum",text:`${ORD[st.d]} Mystery`}));
     kids.push(el("div",{class:"mtitle",dir:S.L[lang]?.dir||"ltr",text:mysteryTitle(lang,P.set,st.d)}));
+    if (P.showPron && lang!=="en"){ const pr=S.PR?.[lang]?.mysteries?.[P.set]?.[st.d]; if (pr) kids.push(pronBox(lang,pr)); }
+    const lb=listenBtn(lang, mysteryTitle(lang,P.set,st.d)); if (lb) kids.push(lb);
     if (lang!=="en" && P.showEn) kids.push(el("div",{class:"ptrans",text:S.L.en?.mysteries?.[P.set]?.[st.d]||""}));
     kids.push(el("div",{class:"mys",text:`Let us contemplate this mystery, and offer the decade for ${S.by[P.iso].name}.`}));
   } else {
@@ -640,6 +660,8 @@ function paintStep(){
     if (!text){ fell=true; shown = P.fallbackLa ? "la" : "en"; text = prayerText(shown, st.p) || ""; }
     const long = text.length>420;
     kids.push(el("p",{class:"ptext"+(long?" small":""),dir:S.L[shown]?.dir||"ltr",lang:shown,text}));
+    if (P.showPron && shown!=="en"){ const pr=S.PR?.[shown]?.prayers?.[st.p]; if (pr) kids.push(pronBox(shown,pr)); }
+    const lb=listenBtn(shown, text); if (lb) kids.push(lb);
     if (fell){ kids.push(el("div",{class:"fallback"}, `This prayer isn’t yet available in ${S.L[lang]?.name||lang}. Shown in ${shown==="la"?"Latin":"English"}.`, el("button",{onclick:e=>{e.stopPropagation(); P.fallbackLa=!P.fallbackLa; paintStep();}},shown==="la"?"Show English":"Show Latin"))); }
     else if (P.showEn && lang!=="en"){ const en=prayerText("en",st.p); if (en) kids.push(el("div",{class:"ptrans",text:en})); }
   }
